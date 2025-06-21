@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pavé tactile</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #111; color: white; font-family: sans-serif; }
+  #pad { width: 100%; height: 100%; touch-action: none; }
+</style>
+</head>
+<body>
+  <script>
+  /* Affiche les exceptions JS en rouge à l’écran */
+  window.onerror = function (msg, url, line, col, err) {
+    document.body.innerHTML =
+      '<pre style="color:#f55;font-size:16px;white-space:pre-wrap">'
+      + msg + ' @ ' + line + ':' + col + '</pre>';
+  };
+</script>
+
+<div id="pad"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+  const socket = io();
+  const pad = document.getElementById('pad');
+  let lastX = null, lastY = null;
+
+  function reset() {
+    lastX = lastY = null;
+  }
+
+  function sendMove(e) {
+    const p = e.touches ? e.touches[0] : e;
+    if (lastX !== null) {
+      socket.emit('move', { dx: p.clientX - lastX, dy: p.clientY - lastY });
+    }
+    lastX = p.clientX; lastY = p.clientY;
+    e.preventDefault();
+  }
+
+  pad.addEventListener('touchstart', reset);
+  pad.addEventListener('touchmove', sendMove);
+  pad.addEventListener('touchend', reset);
+
+  pad.addEventListener('mousedown', reset);
+  pad.addEventListener('mousemove', sendMove);
+  pad.addEventListener('mouseup', reset);
+
+  pad.addEventListener('click', () => socket.emit('click', { button: 'left' }));
+  pad.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    socket.emit('click', { button: 'right' });
+  });
+
+  pad.addEventListener('wheel', e => {
+    socket.emit('scroll', { dy: -Math.sign(e.deltaY) * 3 });
+  });
+</script>
+</body>
+</html>
